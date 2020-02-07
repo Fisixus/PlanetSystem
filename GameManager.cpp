@@ -3,83 +3,96 @@
 typedef Angel::vec4  color4;
 typedef Angel::vec4  point4;
 
-const int NumVertices = 36; //(6 faces)(2 triangles/face)(3 vertices/triangle)
+#define PI 3.14159265
+const int NumVertices = 1000;
+GLfloat radius = 0.4;
 
 point4 points[NumVertices];
 color4 colors[NumVertices];
 
-// Vertices of a unit cube centered at origin, sides aligned with axes
-point4 vertices[8] = {
-	point4(-0.5, -0.5,  0.5, 1.0),
-	point4(-0.5,  0.5,  0.5, 1.0),
-	point4(0.5,  0.5,  0.5, 1.0),
-	point4(0.5, -0.5,  0.5, 1.0),
-	point4(-0.5, -0.5, -0.5, 1.0),
-	point4(-0.5,  0.5, -0.5, 1.0),
-	point4(0.5,  0.5, -0.5, 1.0),
-	point4(0.5, -0.5, -0.5, 1.0)
+GLuint ww = 500;
+GLuint wh = 500;
+
+GLuint vao;
+
+point4 PlanetSystem[501] = {
+	point4(0.0, 0.0 ,0.0, 1.0) //a0
 };
 
+point4 centerPoint = point4(0.0, 0.0, 0.0, 1.0);
+
 // RGBA colors
-color4 vertex_colors[8] = {
+color4 vertex_colors[6] = {
 	color4(0.0, 0.0, 0.0, 1.0),  // black
 	color4(1.0, 0.0, 0.0, 1.0),  // red
 	color4(1.0, 1.0, 0.0, 1.0),  // yellow
 	color4(0.0, 1.0, 0.0, 1.0),  // green
 	color4(0.0, 0.0, 1.0, 1.0),  // blue
 	color4(1.0, 0.0, 1.0, 1.0),  // magenta
-	color4(1.0, 1.0, 1.0, 1.0),  // white
-	color4(0.0, 1.0, 1.0, 1.0)   // cyan
 };
 
-// Array of rotation angles (in degrees) for each coordinate axis
-enum { Xaxis = 0, Yaxis = 1, Zaxis = 2, NumAxes = 3 };
-int      Axis = Xaxis;
-GLfloat  Theta[NumAxes] = { 30.0, 30.0, 0.0 };
-
+GLfloat  Theta[3] = { 0.0, 0.0, 0.0 };
 GLuint  theta;  // The location of the "theta" shader uniform variable
 
 //----------------------------------------------------------------------------
 
-// quad generates two triangles for each face and assigns colors
-//    to the vertices
 int Index = 0;
-void
-quad(int a, int b, int c, int d)
+void lines(int a, int b)
 {
-	colors[Index] = vertex_colors[a]; points[Index] = vertices[a]; Index++;
-	colors[Index] = vertex_colors[b]; points[Index] = vertices[b]; Index++;
-	colors[Index] = vertex_colors[c]; points[Index] = vertices[c]; Index++;
-	colors[Index] = vertex_colors[a]; points[Index] = vertices[a]; Index++;
-	colors[Index] = vertex_colors[c]; points[Index] = vertices[c]; Index++;
-	colors[Index] = vertex_colors[d]; points[Index] = vertices[d]; Index++;
+	colors[Index] = vertex_colors[0]; points[Index] = PlanetSystem[a]; Index++;
+	colors[Index] = vertex_colors[0]; points[Index] = PlanetSystem[b]; Index++;
 }
 
+void triangle(int a, int b)
+{
+	colors[Index] = vertex_colors[0]; points[Index] = PlanetSystem[a]; Index++;
+	//colors[Index] = vertex_colors[0]; points[Index] = rightEyeCenterPoint; Index++;
+	colors[Index] = vertex_colors[0]; points[Index] = PlanetSystem[b]; Index++;
+}
+
+void quad(int a, int b, int c, int d)
+{
+	colors[Index] = vertex_colors[0]; points[Index] = PlanetSystem[a]; Index++;
+	colors[Index] = vertex_colors[0]; points[Index] = PlanetSystem[b]; Index++;
+	colors[Index] = vertex_colors[0]; points[Index] = PlanetSystem[c]; Index++;
+	colors[Index] = vertex_colors[0]; points[Index] = PlanetSystem[a]; Index++;
+	colors[Index] = vertex_colors[0]; points[Index] = PlanetSystem[c]; Index++;
+	colors[Index] = vertex_colors[0]; points[Index] = PlanetSystem[d]; Index++;
+}
 //----------------------------------------------------------------------------
 
-// generate 12 triangles: 36 vertices and 36 colors
-void
-colorcube()
+void fillPointsandColors()
 {
-	quad(1, 0, 3, 2);
-	quad(2, 3, 7, 6);
-	quad(3, 0, 4, 7);
-	quad(6, 5, 1, 2);
-	quad(4, 5, 6, 7);
-	quad(5, 4, 0, 1);
+	int counter = 0;
+	GLfloat angle;
+	for (int i = 0; i <= 500; i++)
+	{
+		angle = 2 * PI * (i + 1) / 499;
+		PlanetSystem[counter].x = centerPoint.x + cos(angle) * radius;
+		PlanetSystem[counter].y = centerPoint.y + sin(angle) * radius;
+		PlanetSystem[counter].z = 0.0;
+		PlanetSystem[counter++].w = 1.0;
+		//printf("Pressing left, respectively.X %f\n", PirateFace[i].x);
+		//printf("Pressing left, respectively.Y %f\n", PirateFace[i].y);
+	}
+
+	for (int i = 0; i < 500; i++)
+	{
+		lines(i, i + 1);
+	}
+
 }
 
 //----------------------------------------------------------------------------
 
 // OpenGL initialization
-void
-init()
+void init()
 {
-	colorcube();
+	fillPointsandColors();
 
-	printf("Pressing left, middle and right  mouse buttons will change the rotation axis to X, Y, and Z, respectively.\n");;
+	//printf("Pressing left, respectively.\n");;
 	// Create a vertex array object
-	GLuint vao;
+	
 	glGenVertexArrays(1, &vao);
 	glBindVertexArray(vao);
 
@@ -93,7 +106,7 @@ init()
 	glBufferSubData(GL_ARRAY_BUFFER, sizeof(points), sizeof(colors), colors);
 
 	// Load shaders and use the resulting shader program
-	GLuint program = InitShader("vshader36.glsl", "fshader36.glsl");
+	GLuint program = InitShader("vshader.glsl", "fshader.glsl");
 	glUseProgram(program);
 
 	// set up vertex arrays
@@ -115,21 +128,20 @@ init()
 
 //----------------------------------------------------------------------------
 
-void
-display(void)
+void display(void)
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+	glBindVertexArray(vao);
 	glUniform3fv(theta, 1, Theta);
-	glDrawArrays(GL_TRIANGLES, 0, NumVertices);
+	glDrawArrays(GL_LINE_LOOP, 0, NumVertices);
 
 	glutSwapBuffers();
 }
 
 //----------------------------------------------------------------------------
 
-void
-keyboard(unsigned char key, int x, int y)
+void keyboard(unsigned char key, int x, int y)
 {
 	switch (key) {
 	case 033: // Escape Key
@@ -141,52 +153,53 @@ keyboard(unsigned char key, int x, int y)
 
 //----------------------------------------------------------------------------
 
-void
-mouse(int button, int state, int x, int y)
+void mouse(int button, int state, int x, int y)
 {
 	if (state == GLUT_DOWN) {
 		switch (button) {
-		case GLUT_LEFT_BUTTON:    Axis = Xaxis;  break;
-		case GLUT_MIDDLE_BUTTON:  Axis = Yaxis;  break;
-		case GLUT_RIGHT_BUTTON:   Axis = Zaxis;  break;
+		case GLUT_LEFT_BUTTON:     break;
+		case GLUT_MIDDLE_BUTTON:   break;
+		case GLUT_RIGHT_BUTTON:    break;
 		}
 	}
 }
 
 //----------------------------------------------------------------------------
 
-void
-idle(void)
+void reshapeFunc(GLsizei w, GLsizei h)
 {
-	Theta[Axis] += 0.5;
+	/* adjust clipping box */
 
-	if (Theta[Axis] > 360.0) {
-		Theta[Axis] -= 360.0;
-	}
 
+	/* adjust viewport and clear */
+
+	glViewport(0, 0, ww*h / wh, h);
+
+	/* set global size for use by drawing routine */
+
+	//ww = w;
+	//wh = h;
+	//resetGame();
 	glutPostRedisplay();
 }
 
 //----------------------------------------------------------------------------
-
-int
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
-	glutInitWindowSize(512, 512);
+	glutInitWindowSize(ww, wh);
 
 	// set OpenGL context to 3.1 or 3.2 and 
 	// set profile to core
 	// deprecated functions will not be available in core profile
 	// the other option is GLUT_COMPATIBILITY PROFILE which let's us use deprecated functionality if
 	// vendor implementation provide it
-	glutInitContextVersion(3, 1);
-	printf("OpenGL version is (%s)\n", glGetString(GL_VERSION));
-	glutInitContextProfile(GLUT_CORE_PROFILE);
+	//glutInitContextVersion(3, 1);
+	//glutInitContextProfile(GLUT_CORE_PROFILE);
 
 	//create graphics window
-	glutCreateWindow("Color Cube");
+	glutCreateWindow("Planet System");
 
 	//include the following statement due to an error in GLEW library
 	glewExperimental = GL_TRUE;
@@ -194,11 +207,10 @@ main(int argc, char **argv)
 	glewInit();
 
 	init();
-
+	glutReshapeFunc(reshapeFunc);
 	glutDisplayFunc(display);
 	glutKeyboardFunc(keyboard);
 	glutMouseFunc(mouse);
-	glutIdleFunc(idle);
 
 	glutMainLoop();
 	return 0;
