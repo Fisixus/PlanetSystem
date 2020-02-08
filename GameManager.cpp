@@ -4,20 +4,18 @@ typedef Angel::vec4  color4;
 typedef Angel::vec4  point4;
 
 #define PI 3.14159265
-const int NumVertices = 1000;
-GLfloat radius = 0.4;
+const int NumVertices = 342;
 
-point4 points[NumVertices];
+GLfloat radius = 0.25;
+GLfloat rotatingDegree = 0.0;
+
+point4 PlanetSystem[NumVertices];
 color4 colors[NumVertices];
 
 GLuint ww = 500;
 GLuint wh = 500;
 
 GLuint vao;
-
-point4 PlanetSystem[501] = {
-	point4(0.0, 0.0 ,0.0, 1.0) //a0
-};
 
 point4 centerPoint = point4(0.0, 0.0, 0.0, 1.0);
 
@@ -27,59 +25,44 @@ color4 vertex_colors[6] = {
 	color4(1.0, 0.0, 0.0, 1.0),  // red
 	color4(1.0, 1.0, 0.0, 1.0),  // yellow
 	color4(0.0, 1.0, 0.0, 1.0),  // green
-	color4(0.0, 0.0, 1.0, 1.0),  // blue
+	color4(135.0/255, 206.0/255, 250.0/255, 1.0),  // blue
 	color4(1.0, 0.0, 1.0, 1.0),  // magenta
 };
 
-GLfloat  Theta[3] = { 0.0, 0.0, 0.0 };
-GLuint  theta;  // The location of the "theta" shader uniform variable
+GLuint  thetaIndex;  // The location of the "theta" shader uniform variable
+GLuint translateRotatingValue;
 
-//----------------------------------------------------------------------------
+GLfloat  ThetaValue[3] = { 0.0, 0.0, 0.0 };
+GLfloat  TranslateRotatingValue[3] = { 0.0, 0.0, 0.0 };
 
 int Index = 0;
-void lines(int a, int b)
-{
-	colors[Index] = vertex_colors[0]; points[Index] = PlanetSystem[a]; Index++;
-	colors[Index] = vertex_colors[0]; points[Index] = PlanetSystem[b]; Index++;
-}
-
-void triangle(int a, int b)
-{
-	colors[Index] = vertex_colors[0]; points[Index] = PlanetSystem[a]; Index++;
-	//colors[Index] = vertex_colors[0]; points[Index] = rightEyeCenterPoint; Index++;
-	colors[Index] = vertex_colors[0]; points[Index] = PlanetSystem[b]; Index++;
-}
-
-void quad(int a, int b, int c, int d)
-{
-	colors[Index] = vertex_colors[0]; points[Index] = PlanetSystem[a]; Index++;
-	colors[Index] = vertex_colors[0]; points[Index] = PlanetSystem[b]; Index++;
-	colors[Index] = vertex_colors[0]; points[Index] = PlanetSystem[c]; Index++;
-	colors[Index] = vertex_colors[0]; points[Index] = PlanetSystem[a]; Index++;
-	colors[Index] = vertex_colors[0]; points[Index] = PlanetSystem[c]; Index++;
-	colors[Index] = vertex_colors[0]; points[Index] = PlanetSystem[d]; Index++;
-}
 //----------------------------------------------------------------------------
+void drawNeptune()
+{
+	for (float phi = -80.0; phi <= 80.0; phi += 20.0)
+	{
+		float phir = phi * DegreesToRadians;
+		float phir20 = (phi + 20.0)*DegreesToRadians;
+		for (float theta = -180.0; theta <= 180.0; theta += 20.0)
+		{
+			float thetar = theta * DegreesToRadians;
+			PlanetSystem[Index] = point4(sin(thetar)*cos(phir)*radius,
+				cos(thetar)*cos(phir)*radius, sin(phir)*radius, 1.0f);
+			colors[Index] = vertex_colors[4];
+			Index++;
+			PlanetSystem[Index] = point4(sin(thetar)*cos(phir20)*radius,
+				cos(thetar)*cos(phir20)*radius, sin(phir20)*radius, 1.0);
+			colors[Index] = vertex_colors[4];
+			Index++;
+		}
+	}
+}
+
 
 void fillPointsandColors()
 {
-	int counter = 0;
-	GLfloat angle;
-	for (int i = 0; i <= 500; i++)
-	{
-		angle = 2 * PI * (i + 1) / 499;
-		PlanetSystem[counter].x = centerPoint.x + cos(angle) * radius;
-		PlanetSystem[counter].y = centerPoint.y + sin(angle) * radius;
-		PlanetSystem[counter].z = 0.0;
-		PlanetSystem[counter++].w = 1.0;
-		//printf("Pressing left, respectively.X %f\n", PirateFace[i].x);
-		//printf("Pressing left, respectively.Y %f\n", PirateFace[i].y);
-	}
+	drawNeptune();
 
-	for (int i = 0; i < 500; i++)
-	{
-		lines(i, i + 1);
-	}
 
 }
 
@@ -100,10 +83,10 @@ void init()
 	GLuint buffer;
 	glGenBuffers(1, &buffer);
 	glBindBuffer(GL_ARRAY_BUFFER, buffer);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(points) + sizeof(colors),
+	glBufferData(GL_ARRAY_BUFFER, sizeof(PlanetSystem) + sizeof(colors),
 		NULL, GL_STATIC_DRAW);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(points), points);
-	glBufferSubData(GL_ARRAY_BUFFER, sizeof(points), sizeof(colors), colors);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(PlanetSystem), PlanetSystem);
+	glBufferSubData(GL_ARRAY_BUFFER, sizeof(PlanetSystem), sizeof(colors), colors);
 
 	// Load shaders and use the resulting shader program
 	GLuint program = InitShader("vshader.glsl", "fshader.glsl");
@@ -118,12 +101,13 @@ void init()
 	GLuint vColor = glGetAttribLocation(program, "vColor");
 	glEnableVertexAttribArray(vColor);
 	glVertexAttribPointer(vColor, 4, GL_FLOAT, GL_FALSE, 0,
-		BUFFER_OFFSET(sizeof(points)));
+		BUFFER_OFFSET(sizeof(PlanetSystem)));
 
-	theta = glGetUniformLocation(program, "theta");
+	thetaIndex = glGetUniformLocation(program, "theta");
+	translateRotatingValue = glGetUniformLocation(program, "translateRotatingValue");
 
 	glEnable(GL_DEPTH_TEST);
-	glClearColor(1.0, 1.0, 1.0, 1.0);
+	glClearColor(0.0, 0.0, 0.0, 1.0);
 }
 
 //----------------------------------------------------------------------------
@@ -133,8 +117,12 @@ void display(void)
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	glBindVertexArray(vao);
-	glUniform3fv(theta, 1, Theta);
-	glDrawArrays(GL_LINE_LOOP, 0, NumVertices);
+	glUniform3fv(thetaIndex, 1, ThetaValue);
+	glUniform3fv(translateRotatingValue, 1, TranslateRotatingValue);
+	
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	glDrawArrays(GL_TRIANGLE_FAN, 0, 342);
+//	glDrawArrays(GL_TRIANGLE_FAN, 342, 40);
 
 	glutSwapBuffers();
 }
@@ -157,7 +145,23 @@ void mouse(int button, int state, int x, int y)
 {
 	if (state == GLUT_DOWN) {
 		switch (button) {
-		case GLUT_LEFT_BUTTON:     break;
+		case GLUT_LEFT_BUTTON:     
+			
+			if (rotatingDegree > 360) rotatingDegree = 0;
+
+			//Rotate
+			ThetaValue[0] = rotatingDegree;
+			ThetaValue[1] = 0;
+			ThetaValue[2] = rotatingDegree;
+			rotatingDegree += 5;
+
+			TranslateRotatingValue[0] = sin(rotatingDegree * DegreesToRadians)/1.25;
+			TranslateRotatingValue[1] = cos(rotatingDegree * DegreesToRadians)/1.25;
+			TranslateRotatingValue[2] = 0;
+
+
+			glutPostRedisplay();
+			break;
 		case GLUT_MIDDLE_BUTTON:   break;
 		case GLUT_RIGHT_BUTTON:    break;
 		}
