@@ -6,3 +6,5 @@ by wireframe.
 # Rules
 1. In this programme, Saturn will start to revolve around itself and revolve around Sun.
 2. By pressing 'q' you can exit the programme.
+
+<img src="https://media.giphy.com/media/JPssaTtYmFfnKIqgQ6/giphy.gif" width="500" height="500" />
