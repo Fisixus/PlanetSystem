@@ -4,29 +4,34 @@ typedef Angel::vec4  color4;
 typedef Angel::vec4  point4;
 
 #define PI 3.14159265
-const int NumVertices = 342;
+const int NumVertices = 2684;
 
-GLfloat radius = 0.25;
+GLfloat saturnRadius = 0.2;
+GLfloat saturnCircleRadius = 0.25;
+GLfloat sunRadius = 0.4;
 GLfloat rotatingDegree = 0.0;
 
 point4 PlanetSystem[NumVertices];
 color4 colors[NumVertices];
 
-GLuint ww = 500;
-GLuint wh = 500;
+GLuint ww = 800;
+GLuint wh = 800;
 
 GLuint vao;
 
-point4 centerPoint = point4(0.0, 0.0, 0.0, 1.0);
-
 // RGBA colors
-color4 vertex_colors[6] = {
+color4 vertex_colors[7] = {
 	color4(0.0, 0.0, 0.0, 1.0),  // black
 	color4(1.0, 0.0, 0.0, 1.0),  // red
 	color4(1.0, 1.0, 0.0, 1.0),  // yellow
 	color4(0.0, 1.0, 0.0, 1.0),  // green
 	color4(135.0/255, 206.0/255, 250.0/255, 1.0),  // blue
 	color4(1.0, 0.0, 1.0, 1.0),  // magenta
+	color4(1.0, 1.0, 1.0, 1.0)  // white
+};
+
+point4 SaturnCircle[1002] = {
+	point4(0.0, 0.0 ,0.0, 1.0)
 };
 
 GLuint  thetaIndex;  // The location of the "theta" shader uniform variable
@@ -37,7 +42,15 @@ GLfloat  TranslateRotatingValue[3] = { 0.0, 0.0, 0.0 };
 
 int Index = 0;
 //----------------------------------------------------------------------------
-void drawNeptune()
+
+void lines(int a, int b)
+{
+	colors[Index] = vertex_colors[6]; PlanetSystem[Index] = SaturnCircle[a]; Index++;
+	colors[Index] = vertex_colors[6]; PlanetSystem[Index] = SaturnCircle[b]; Index++;
+}
+
+
+void drawSaturn()
 {
 	for (float phi = -80.0; phi <= 80.0; phi += 20.0)
 	{
@@ -46,23 +59,82 @@ void drawNeptune()
 		for (float theta = -180.0; theta <= 180.0; theta += 20.0)
 		{
 			float thetar = theta * DegreesToRadians;
-			PlanetSystem[Index] = point4(sin(thetar)*cos(phir)*radius,
-				cos(thetar)*cos(phir)*radius, sin(phir)*radius, 1.0f);
+			PlanetSystem[Index] = point4(sin(thetar)*cos(phir)*saturnRadius,
+				cos(thetar)*cos(phir)*saturnRadius, sin(phir)*saturnRadius, 1.0f);
 			colors[Index] = vertex_colors[4];
 			Index++;
-			PlanetSystem[Index] = point4(sin(thetar)*cos(phir20)*radius,
-				cos(thetar)*cos(phir20)*radius, sin(phir20)*radius, 1.0);
+			PlanetSystem[Index] = point4(sin(thetar)*cos(phir20)*saturnRadius,
+				cos(thetar)*cos(phir20)*saturnRadius, sin(phir20)*saturnRadius, 1.0);
 			colors[Index] = vertex_colors[4];
 			Index++;
 		}
 	}
 }
 
+void drawSun()
+{
+	for (float phi = -80.0; phi <= 80.0; phi += 20.0)
+	{
+		float phir = phi * DegreesToRadians;
+		float phir20 = (phi + 20.0)*DegreesToRadians;
+		for (float theta = -180.0; theta <= 180.0; theta += 20.0)
+		{
+			float thetar = theta * DegreesToRadians;
+			PlanetSystem[Index] = point4(sin(thetar)*cos(phir)*sunRadius,
+				cos(thetar)*cos(phir)*sunRadius, sin(phir)*sunRadius, 1.0f);
+			colors[Index] = vertex_colors[2];
+			Index++;
+			PlanetSystem[Index] = point4(sin(thetar)*cos(phir20)*sunRadius,
+				cos(thetar)*cos(phir20)*sunRadius, sin(phir20)*sunRadius, 1.0);
+			colors[Index] = vertex_colors[2];
+			Index++;
+		}
+	}
+}
+
+
+void drawSaturnCircle()
+{
+	int counter = 0;
+	GLfloat angle;
+	for (int i = 0; i <= 500; i++)
+	{
+		angle = 2 * PI * (i + 1) / 499;
+		SaturnCircle[counter].x = cos(angle) * saturnCircleRadius;
+		SaturnCircle[counter].y = sin(angle) * saturnCircleRadius;
+		SaturnCircle[counter].z = 0.0;
+		SaturnCircle[counter++].w = 1.0;
+		//printf("Pressing left, respectively.X %f\n", PirateFace[i].x);
+		//printf("Pressing left, respectively.Y %f\n", PirateFace[i].y);
+	}
+
+	for (int i = 0; i < 500; i++)
+	{
+		lines(i, i + 1);
+	}
+
+	for (int i = 0; i <= 500; i++)
+	{
+		angle = 2 * PI * (i + 1) / 499;
+		SaturnCircle[counter].x = cos(angle) * saturnCircleRadius * 1.1;
+		SaturnCircle[counter].y = sin(angle) * saturnCircleRadius * 1.1;
+		SaturnCircle[counter].z = 0.0;
+		SaturnCircle[counter++].w = 1.0;
+		//printf("Pressing left, respectively.X %f\n", PirateFace[i].x);
+		//printf("Pressing left, respectively.Y %f\n", PirateFace[i].y);
+	}
+
+	for (int i = 501; i < 1001; i++)
+	{
+		lines(i, i + 1);
+	}
+}
 
 void fillPointsandColors()
 {
-	drawNeptune();
-
+	drawSaturnCircle();
+	drawSaturn();
+	drawSun();
 
 }
 
@@ -119,10 +191,19 @@ void display(void)
 	glBindVertexArray(vao);
 	glUniform3fv(thetaIndex, 1, ThetaValue);
 	glUniform3fv(translateRotatingValue, 1, TranslateRotatingValue);
-	
+	glDrawArrays(GL_LINES, 0, 2000);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	glDrawArrays(GL_TRIANGLE_FAN, 0, 342);
-//	glDrawArrays(GL_TRIANGLE_FAN, 342, 40);
+	glDrawArrays(GL_TRIANGLE_FAN, 2000, 342);
+
+	ThetaValue[0] = 90.0;
+	ThetaValue[1] = 0.0;
+	ThetaValue[2] = 0.0;
+	TranslateRotatingValue[0] = 0.0;
+	TranslateRotatingValue[1] = 0.0;
+	TranslateRotatingValue[2] = 0.0;
+	glUniform3fv(thetaIndex, 1, ThetaValue);
+	glUniform3fv(translateRotatingValue, 1, TranslateRotatingValue);
+	glDrawArrays(GL_TRIANGLE_FAN, 2342, 342);
 
 	glutSwapBuffers();
 }
@@ -145,23 +226,7 @@ void mouse(int button, int state, int x, int y)
 {
 	if (state == GLUT_DOWN) {
 		switch (button) {
-		case GLUT_LEFT_BUTTON:     
-			
-			if (rotatingDegree > 360) rotatingDegree = 0;
-
-			//Rotate
-			ThetaValue[0] = rotatingDegree;
-			ThetaValue[1] = 0;
-			ThetaValue[2] = rotatingDegree;
-			rotatingDegree += 5;
-
-			TranslateRotatingValue[0] = sin(rotatingDegree * DegreesToRadians)/1.25;
-			TranslateRotatingValue[1] = cos(rotatingDegree * DegreesToRadians)/1.25;
-			TranslateRotatingValue[2] = 0;
-
-
-			glutPostRedisplay();
-			break;
+		case GLUT_LEFT_BUTTON:     break;
 		case GLUT_MIDDLE_BUTTON:   break;
 		case GLUT_RIGHT_BUTTON:    break;
 		}
@@ -187,12 +252,33 @@ void reshapeFunc(GLsizei w, GLsizei h)
 	glutPostRedisplay();
 }
 
+void animateSaturn(int id)
+{
+	if (rotatingDegree > 360) rotatingDegree = 0;
+
+	//Rotate
+	ThetaValue[0] = rotatingDegree;
+	ThetaValue[1] = 0;
+	ThetaValue[2] = rotatingDegree;
+	rotatingDegree += 5;
+
+	TranslateRotatingValue[0] = sin(rotatingDegree * DegreesToRadians) / 1.25;
+	TranslateRotatingValue[1] = cos(rotatingDegree * DegreesToRadians) / 1.25;
+	TranslateRotatingValue[2] = 0;
+
+
+	glutPostRedisplay();
+
+	glutTimerFunc(100, animateSaturn, 0);
+}
+
 //----------------------------------------------------------------------------
 int main(int argc, char **argv)
 {
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
 	glutInitWindowSize(ww, wh);
+	glutInitWindowPosition(100, 100);
 
 	// set OpenGL context to 3.1 or 3.2 and 
 	// set profile to core
@@ -215,6 +301,7 @@ int main(int argc, char **argv)
 	glutDisplayFunc(display);
 	glutKeyboardFunc(keyboard);
 	glutMouseFunc(mouse);
+	glutTimerFunc(2, animateSaturn, 0);
 
 	glutMainLoop();
 	return 0;
